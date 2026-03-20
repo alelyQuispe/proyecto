@@ -8,31 +8,27 @@ env:
 phases:
   pre_build:
     commands:
-      - echo "Login en Docker Hub para evitar error 429..."
+      - echo "Login en Docker Hub..."
+      # Usamos las variables en texto plano que pusiste en la consola
       - echo $DOCKERHUB_PASS | docker login --username $DOCKERHUB_USER --password-stdin
-      
       - echo "Iniciando sesión en Amazon ECR..."
       - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
-      
       - REPO_FRONT=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/devkubctl-frontend
       - REPO_BACK=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/devkubctl-backend
 
   build:
     commands:
       - echo "Compilando Backend (Java)..."
-      # Tu Dockerfile busca en target/, así que necesitamos generar el .jar
       - cd ./DevKubBack && chmod +x mvnw && ./mvnw clean package -DskipTests && cd ..
-      
       - echo "Construyendo imágenes Docker..."
       - docker build -t $REPO_FRONT:latest ./Frontend
       - docker build -t $REPO_BACK:latest ./DevKubBack
 
   post_build:
     commands:
-      - echo "Subiendo imágenes a ECR..."
+      - echo "Pushing images..."
       - docker push $REPO_FRONT:latest
       - docker push $REPO_BACK:latest
-      
       - echo "Generando archivos de despliegue..."
       - printf '[{"name":"frontend","imageUri":"%s"}]' $REPO_FRONT:latest > imagedef_frontend.json
       - printf '[{"name":"backend","imageUri":"%s"}]' $REPO_BACK:latest > imagedef_backend.json
