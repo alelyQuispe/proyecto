@@ -1,1 +1,44 @@
+version: 0.2
 
+env:
+  variables:
+    AWS_ACCOUNT_ID: 308414301876
+    AWS_REGION: us-east-1
+
+phases:
+  pre_build:
+    commands:
+      - echo Login ECR
+      - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+
+  build:
+    commands:
+      - echo Build FRONTEND
+      - docker build -t devkubctl-frontend ./frontend
+      - docker tag devkubctl-frontend:latest $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/devkubctl-frontend:latest
+
+      - echo Build BACKEND
+      - docker build -t devkubctl-backend ./backend
+      - docker tag devkubctl-backend:latest $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/devkubctl-backend:latest
+
+  post_build:
+    commands:
+      - echo Push FRONTEND
+      - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/devkubctl-frontend:latest
+
+      - echo Push BACKEND
+      - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/devkubctl-backend:latest
+
+      - echo Generate imagedefinitions.json
+      - printf '[{"name":"frontend","imageUri":"%s"},{"name":"backend","imageUri":"%s"}]' \
+        $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/devkubctl-frontend:latest \
+        $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/devkubctl-backend:latest \
+        > imagedefinitions.json
+
+artifacts:
+  files:
+    - imagedefinitions.json
+        [
+          {"name":"frontend", ...},
+          {"name":"backend", ...}
+        ]
