@@ -16,11 +16,11 @@ phases:
   build:
     commands:
       - echo "Construyendo Frontend..."
-      # Usamos 'Frontend' con mayúscula como está en tu GitHub
+      # Ajustado a 'Frontend' con F mayúscula
       - docker build -t $REPO_FRONT:latest ./Frontend
       
       - echo "Construyendo Backend..."
-      # Usamos 'DevKubBack' como está en tu GitHub
+      # Ajustado a 'DevKubBack' según tu imagen
       - docker build -t $REPO_BACK:latest ./DevKubBack
 
   post_build:
@@ -29,8 +29,8 @@ phases:
       - docker push $REPO_FRONT:latest
       - docker push $REPO_BACK:latest
       
-      - echo "Generando archivos de despliegue para ECS..."
-      # RECUERDA: El 'name' debe coincidir con el 'name' en tu ecs.tf (frontend y backend)
+      - echo "Generando archivos de despliegue..."
+      # Estos nombres 'frontend' y 'backend' deben coincidir con el 'name' en tu ecs.tf
       - printf '[{"name":"frontend","imageUri":"%s"}]' $REPO_FRONT:latest > imagedef_frontend.json
       - printf '[{"name":"backend","imageUri":"%s"}]' $REPO_BACK:latest > imagedef_backend.json
 
