@@ -2,43 +2,39 @@ version: 0.2
 
 env:
   variables:
-    AWS_ACCOUNT_ID: 308414301876
-    AWS_REGION: us-east-1
+    AWS_ACCOUNT_ID: "308414301876"
+    AWS_REGION: "us-east-1"
 
 phases:
   pre_build:
     commands:
-      - echo Login ECR
+      - echo "Iniciando sesión en Amazon ECR..."
       - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+      - REPO_FRONT=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/devkubctl-frontend
+      - REPO_BACK=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/devkubctl-backend
 
   build:
     commands:
-      - echo Build FRONTEND
-      - docker build -t devkubctl-frontend ./frontend
-      - docker tag devkubctl-frontend:latest $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/devkubctl-frontend:latest
-
-      - echo Build BACKEND
-      - docker build -t devkubctl-backend ./backend
-      - docker tag devkubctl-backend:latest $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/devkubctl-backend:latest
+      - echo "Construyendo Frontend..."
+      # Usamos 'Frontend' con mayúscula como está en tu GitHub
+      - docker build -t $REPO_FRONT:latest ./Frontend
+      
+      - echo "Construyendo Backend..."
+      # Usamos 'DevKubBack' como está en tu GitHub
+      - docker build -t $REPO_BACK:latest ./DevKubBack
 
   post_build:
     commands:
-      - echo Push FRONTEND
-      - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/devkubctl-frontend:latest
-
-      - echo Push BACKEND
-      - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/devkubctl-backend:latest
-
-      - echo Generate imagedefinitions.json
-      - printf '[{"name":"frontend","imageUri":"%s"},{"name":"backend","imageUri":"%s"}]' \
-        $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/devkubctl-frontend:latest \
-        $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/devkubctl-backend:latest \
-        > imagedefinitions.json
+      - echo "Subiendo imágenes a ECR..."
+      - docker push $REPO_FRONT:latest
+      - docker push $REPO_BACK:latest
+      
+      - echo "Generando archivos de despliegue para ECS..."
+      # RECUERDA: El 'name' debe coincidir con el 'name' en tu ecs.tf (frontend y backend)
+      - printf '[{"name":"frontend","imageUri":"%s"}]' $REPO_FRONT:latest > imagedef_frontend.json
+      - printf '[{"name":"backend","imageUri":"%s"}]' $REPO_BACK:latest > imagedef_backend.json
 
 artifacts:
   files:
-    - imagedefinitions.json
-        [
-          {"name":"frontend", ...},
-          {"name":"backend", ...}
-        ]
+    - imagedef_frontend.json
+    - imagedef_backend.json
